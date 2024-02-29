@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "715039295106",
+    "project_id": "fir-tapday",
+    "storage_bucket": "fir-tapday.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:715039295106:android:cb9cb0c36b02329642169b",
+        "android_client_info": {
+          "package_name": "com.tapday.notification"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJ7kfXYVVdVEIHwSrssHpCWDdwVF_XUvQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
