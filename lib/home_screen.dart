@@ -1,127 +1,123 @@
-// ignore_for_file: unused_field
+// // ignore_for_file: unused_field, avoid_print
+// import 'dart:convert';
+// import 'dart:developer';
+// import 'package:flutter/foundation.dart';
+// import 'package:flutter/material.dart';
+// import 'package:http/http.dart' as http;
+// import 'notification_services.dart';
 
-import 'dart:developer';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
-import 'package:overlay_support/overlay_support.dart';
-import 'notification/push_notification.dart';
+// class HomeScreen extends StatefulWidget {
+//   const HomeScreen({Key? key}) : super(key: key);
 
-// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
+//   @override
+//   State<HomeScreen> createState() => _HomeScreenState();
+// }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+// class _HomeScreenState extends State<HomeScreen> {
+//   NotificationServices notificationsServices = NotificationServices();
+//   Map<String, bool> subscribedTopics = {};
+//   final List<String> topics = ['sports', 'technology', 'entertainment'];
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
+//   @override
+//   void initState() {
+//     super.initState();
+//     notificationsServices.requestNotificationPermission();
+//     notificationsServices.firebaseInit(context);
+//     notificationsServices.isTokenRefresh();
+//     notificationsServices.forgroundMessage();
+//     notificationsServices.setupInteractMessage(context);
+//     notificationsServices
+//         .getDeviceToken()
+//         .then((value) => print("Device token $value"));
 
-class _HomeScreenState extends State<HomeScreen> {
-  late FirebaseMessaging _messaging;
-  int totalNotification = 0;
-  late PushNotification _notificationinfo;
+//     for (var topic in topics) {
+//       subscribedTopics[topic] = false;
+//     }
+//   }
 
-  // For user permission, depend on user they will allow notification or not
-  void registerNotification() async {
-    await Firebase.initializeApp();
-    _messaging = FirebaseMessaging.instance;
-    // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    NotificationSettings settings = await _messaging.requestPermission(
-        alert: true, badge: true, provisional: false, sound: true);
+//   void toggleSubscription(String topic) async {
+//     if (subscribedTopics[topic]!) {
+//       await notificationsServices.unsubscribeFromTopic(topic);
+//     } else {
+//       await notificationsServices.subscribeToTopic(topic);
+//     }
+//     setState(() {
+//       subscribedTopics[topic] = !subscribedTopics[topic]!;
+//     });
+//   }
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        log("Message title: ${message.notification?.title}");
-        PushNotification notification = PushNotification(
-          title: message.notification!.title ?? "",
-          body: message.notification!.body ?? "",
-          dataTitle: message.data["title"] ?? "",
-          dataBody: message.data["body"] ?? "",
-        );
-        log(notification.title);
-        setState(() {
-          _notificationinfo = notification;
-          totalNotification++;
-        });
+//   @override
+//   Widget build(BuildContext context) {
+//     NotificationServices notificationServices = NotificationServices();
 
-        // Display notification here after it's received
-        showSimpleNotification(
-          Text(
-            notification.title,
-            style: const TextStyle(color: Colors.white),
-          ),
-          background: Colors.purple,
-          duration: const Duration(seconds: 2),
-          subtitle: Text(notification.body),
-        );
-      });
-    } else {
-      log("User declined or has not accepted permission");
-    }
-  }
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text("Notifications"),
+//       ),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           crossAxisAlignment: CrossAxisAlignment.center,
+//           children: [
+//             const Text("Push Notifications"),
+//             const SizedBox(
+//               height: 10,
+//             ),
+//             SizedBox(
+//               height: 400,
+//               child: ListView.builder(
+//                 itemCount: topics.length,
+//                 itemBuilder: (context, index) {
+//                   String topic = topics[index];
+//                   return SwitchListTile(
+//                     title: Text(topic),
+//                     value: subscribedTopics[topic] ?? false,
+//                     onChanged: (bool value) {
+//                       toggleSubscription(topic);
+//                     },
+//                   );
+//                 },
+//               ),
+//             ),
+//             const SizedBox(
+//               height: 10,
+//             ),
+//             ElevatedButton(
+//                 onPressed: () {
+//                   notificationServices.getDeviceToken().then((value) async {
+//                     var data = {
+//                       'to': value.toString(),
+//                       'notification': {
+//                         'title': "Tapday App",
+//                         'body': 'Tapday Notifications',
+//                         'image':
+//                             'https://img.freepik.com/free-photo/painting-mountain-lake-with-mountain-background_188544-9126.jpg',
+//                       },
+//                       'data': {'type': 'msj', 'id': '123456'}
+//                     };
 
-  // For handling notifications in terminated state
-  void checkForInitialMessage() async {
-    await Firebase.initializeApp();
-    RemoteMessage? initialMessage =
-        await FirebaseMessaging.instance.getInitialMessage();
-
-    if (initialMessage != null) {
-      PushNotification notification = PushNotification(
-        title: initialMessage.notification?.title ?? "",
-        body: initialMessage.notification!.body ?? "",
-        dataTitle: initialMessage.data["title"] ?? "",
-        dataBody: initialMessage.data["body"] ?? "",
-      );
-      log(notification.title);
-      setState(() {
-        _notificationinfo = notification;
-        totalNotification++;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    totalNotification = 0;
-
-    registerNotification();
-    checkForInitialMessage();
-
-    // For handling notification when the app is in the background but not terminated
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      PushNotification notification = PushNotification(
-        title: message.notification!.title ?? "",
-        body: message.notification!.body ?? "",
-        dataTitle: message.data["title"] ?? "",
-        dataBody: message.data["body"] ?? "",
-      );
-      log(notification.title);
-      setState(() {
-        _notificationinfo = notification;
-        totalNotification++;
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Notifications"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Push Notifications"),
-            Text("Total Notifications: $totalNotification"),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//                     await http.post(
+//                         Uri.parse('https://fcm.googleapis.com/fcm/send'),
+//                         body: jsonEncode(data),
+//                         headers: {
+//                           'Content-Type': 'application/json; charset=UTF-8',
+//                           'Authorization':
+//                               'key=AAAApnupxoI:APA91bEcH15pXHaqKSqGgBSaw_BQwr6TTmI9QewucEVJbFGV0ElvMxbzJL2PL5MTWPjRXSu_v3nF4hajo5_Z2odIZPHkF_ZdffI5wrImxSH7M0C8b5sgDoOif-Nu1fXOUjxfZN47hW9F',
+//                           'image':
+//                               'https://img.freepik.com/free-photo/painting-mountain-lake-with-mountain-background_188544-9126.jpg',
+//                         }).then((value) {
+//                       log(value.body.toString());
+//                     }).onError((error, stackTrace) {
+//                       if (kDebugMode) {
+//                         print(error);
+//                       }
+//                     });
+//                   });
+//                 },
+//                 child: const Text("Send Notification"))
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

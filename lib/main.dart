@@ -1,79 +1,137 @@
-import 'dart:async';
-import 'dart:developer';
-import 'package:firebase_auth/firebase_auth.dart';
+// ignore_for_file: library_private_types_in_public_api
+
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:overlay_support/overlay_support.dart';
+import 'awosome_notification.dart';
 import 'firebase_options.dart';
-import 'home_screen.dart';
-import 'notification/push_notification.dart';
 
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  log("Handling background Message: ${message.messageId}");
+// @pragma('vm:entry-point')
+// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+//   await Firebase.initializeApp();
+// }
 
-  RemoteMessage? initialMessage =
-      await FirebaseMessaging.instance.getInitialMessage();
-  if (initialMessage != null) {
-    PushNotification notification = PushNotification(
-      title: initialMessage.notification!.title ?? "",
-      body: initialMessage.notification!.body ?? "",
-      dataTitle: initialMessage.data["title"] ?? "",
-      dataBody: initialMessage.data["body"] ?? "",
-    );
-
-    log(notification.title);
-  }
-}
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+//   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+//   runApp(const MyApp());
+// }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Initialize Awesome Notifications
+  await AwesomeNotifications().initialize(
+    null,
+    [
+      NotificationChannel(
+        channelKey: 'image',
+        channelName: 'Image Channel',
+        channelDescription: 'Channel for notifications with images',
+        defaultColor: const Color(0xFF9D50DD),
+        ledColor: Colors.deepPurple,
+        importance: NotificationImportance.High,
+        defaultPrivacy: NotificationPrivacy.Private,
+        playSound: true,
+        vibrationPattern: highVibrationPattern,
+      ),
+    ],
+    debug: true,
+  );
+
+  // Initialize Firebase Cloud Messaging
+  await NotificationController.initializeFCM();
+  await NotificationController.subscribeToTopic('KFC');
+
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Flutter Notification',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: const NotificationScreen(),
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
-  User? user;
-
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+class NotificationScreen extends StatefulWidget {
+  const NotificationScreen({Key? key}) : super(key: key);
 
   @override
-  void initState() {
-    super.initState();
+  _NotificationScreenState createState() => _NotificationScreenState();
+}
 
-    user = FirebaseAuth.instance.currentUser;
-    _firebaseMessaging.getToken().then((token) {
-      log("Firebase Token $token");
-    });
-    // Handle incoming messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      log("Received Message: ${message.notification?.body}");
-    });
-  }
+class _NotificationScreenState extends State<NotificationScreen> {
+  bool _showNotifications = false;
 
   @override
   Widget build(BuildContext context) {
-    return OverlaySupport(
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Flutter Notification',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Notifications"),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SwitchListTile(
+              title: const Text("Notifications"),
+              value: _showNotifications,
+              onChanged: (bool value) {
+                setState(() {
+                  _showNotifications = value;
+                  NotificationController.showNotifications = value;
+                });
+              },
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            ElevatedButton(
+              onPressed: () {
+                NotificationController.scheduleLocalNotification(
+                  id: 1,
+                  title: 'Scheduled Notification',
+                  body: 'This is a scheduled notification!',
+                  scheduledTime: DateTime.now().add(const Duration(minutes: 1)),
+                );
+              },
+              child: const Text("Schedule Notification"),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (!NotificationController.isNotificationScheduled) {
+                  NotificationController.scheduleRepeatingNotification(
+                    id: 1,
+                    title: 'Schedule Repeating Notification',
+                    body: 'This is a scheduled notification!',
+                  );
+                }
+              },
+              child: const Text(
+                "Schedule Repeating Notification",
+              ),
+            ),
+          ],
         ),
-        home: const HomeScreen(),
       ),
     );
   }
 }
-// how to send notification through channel 
